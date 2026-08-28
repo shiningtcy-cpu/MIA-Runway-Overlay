@@ -70,6 +70,9 @@
   .chip{background:var(--card);border:1px solid var(--line);color:var(--muted);padding:7px 14px;border-radius:20px;cursor:pointer;font-size:13px;font-weight:600;transition:.16s;}
   .chip:hover{border-color:var(--blue);color:var(--navy);}
   .chip.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+  /* When a filter chip is selected, its English sub-text must also turn white
+     so it stays readable on the coloured (phase / navy) background. */
+  .chip.active .en-sub{color:#fff;opacity:1;}
   .search{flex:1;min-width:180px;max-width:320px;margin-left:auto;}
   .search input{width:100%;padding:9px 13px;border:1px solid var(--line);border-radius:9px;font-size:13.5px;font-family:inherit;background:#fff;color:var(--ink);}
   .search input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(46,111,181,.12);}
@@ -318,7 +321,7 @@
 <div class="wrap">
 
   <section class="panel" id="panel-overview">
-    <div class="kpi-grid" id="kpiGrid"><div class="kpi "><div class="label"><span class="zh">專題工作項目</span><span class="en-sub">Work Items</span></div><div class="val ">39</div><div class="sub">已完成 38 · 計劃 1</div><div class="sub-en">38 completed · 1 planned</div></div><div class="kpi k2"><div class="label"><span class="zh">專題階段</span><span class="en-sub">Work Phases</span></div><div class="val ">3</div><div class="sub">勘察測量 · 初步設計 · 招標</div><div class="sub-en">Survey · Preliminary Design · Tendering</div></div><div class="kpi k3"><div class="label"><span class="zh">信函往來總數</span><span class="en-sub">Correspondence</span></div><div class="val ">13</div><div class="sub">已回復 7 · 待回復 2 · 準備中 1 · 內部審核中 2 · 已閉環 1</div><div class="sub-en"></div></div><div class="kpi k4"><div class="label"><span class="zh">工作時間跨度</span><span class="en-sub">Time Span</span></div><div class="val k4-val">2026-02-10 – 2026-08-25</div><div class="sub">True</div><div class="sub-en">涵蓋 6 個月</div></div><div class="kpi k5"><div class="label"><span class="zh">最近一項動態</span><span class="en-sub">Latest Activity</span></div><span class="date-pill">2026-08-19</span><div class="big">不停航施工方案專用施工道口设置分析V3.0</div><div class="big-en">Analysis of Dedicated Construction Passages V3.0</div></div><div class="kpi k6"><div class="label"><span class="zh">即將開展</span><span class="en-sub">Upcoming</span></div><span class="date-pill">2026-08-28</span><div class="big">施工道口方案更新</div><div class="big-en"> · 賀喜 HE Xi</div></div></div>
+    <div class="kpi-grid" id="kpiGrid"><div class="kpi "><div class="label"><span class="zh">專題工作項目</span><span class="en-sub">Work Items</span></div><div class="val ">39</div><div class="sub">已完成 38 · 計劃 1</div><div class="sub-en">38 completed · 1 planned</div></div><div class="kpi k2"><div class="label"><span class="zh">專題階段</span><span class="en-sub">Work Phases</span></div><div class="val ">3</div><div class="sub">勘察測量 · 初步設計 · 招標</div><div class="sub-en">Survey · Preliminary Design · Tendering</div></div><div class="kpi k3"><div class="label"><span class="zh">信函往來總數</span><span class="en-sub">Correspondence</span></div><div class="val ">13</div><div class="sub">已回復 / Replied 7 · 待回復 / Pending Response 2 · 準備中 / In Preparation 1 · 內部審核中 / Under Internal Review 2 · 已閉環 / Closed 1</div><div class="sub-en"></div></div><div class="kpi k4"><div class="label"><span class="zh">工作時間跨度</span><span class="en-sub">Time Span</span></div><div class="val k4-val">2026-02-10 – 2026-08-25</div><div class="sub">True</div><div class="sub-en">涵蓋 6 個月</div></div><div class="kpi k5"><div class="label"><span class="zh">最近一項動態</span><span class="en-sub">Latest Activity</span></div><span class="date-pill">2026-08-19</span><div class="big">不停航施工方案專用施工道口设置分析V3.0</div><div class="big-en">Analysis of Dedicated Construction Passages V3.0</div></div><div class="kpi k6"><div class="label"><span class="zh">即將開展</span><span class="en-sub">Upcoming</span></div><span class="date-pill">2026-08-28</span><div class="big">施工道口方案更新</div><div class="big-en"> · 賀喜 HE Xi</div></div></div>
     <div class="chart-row three" style="margin-top:18px;">
       <div class="card">
         <h2>專題工作項目分佈 <span class="en">Work Items by Phase</span></h2>
@@ -328,8 +331,8 @@
       </div>
       <div class="card">
         <h2>信函往來狀態 <span class="en">Correspondence Status</span></h2>
-        <div id="donutCorr"><svg class="svgchart" width="200" height="200" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet" style="aspect-ratio:200/200" role="img"><path class="seg" d="M 100.000 22.000 A 78 78 0 1 1 81.333 175.733" fill="none" stroke="#2E9E6B" stroke-width="26" stroke-linecap="butt"><title>已回復: 7</title></path><path class="seg" d="M 81.333 175.733 A 78 78 0 0 1 27.069 127.659" fill="none" stroke="#3A9BB5" stroke-width="26" stroke-linecap="butt"><title>待回復: 2</title></path><path class="seg" d="M 27.069 127.659 A 78 78 0 0 1 22.569 90.598" fill="none" stroke="#E0A93B" stroke-width="26" stroke-linecap="butt"><title>準備中: 1</title></path><path class="seg" d="M 22.569 90.598 A 78 78 0 0 1 63.752 30.934" fill="none" stroke="#E08A3B" stroke-width="26" stroke-linecap="butt"><title>內部審核中: 2</title></path><path class="seg" d="M 63.752 30.934 A 78 78 0 0 1 100.000 22.000" fill="none" stroke="#7A5CC0" stroke-width="26" stroke-linecap="butt"><title>已閉環: 1</title></path><text x="100" y="96" text-anchor="middle" font-size="30" font-weight="800" fill="#0E2A47">13</text><text x="100" y="118" text-anchor="middle" font-size="11" fill="#5E7184">合計 / Total</text></svg></div>
-        <div class="legend" id="legCorr"><span><i class="dot" style="background:#2E9E6B"></i>已回復 <b style="color:#1B2A3A">7</b></span><span><i class="dot" style="background:#3A9BB5"></i>待回復 <b style="color:#1B2A3A">2</b></span><span><i class="dot" style="background:#E0A93B"></i>準備中 <b style="color:#1B2A3A">1</b></span><span><i class="dot" style="background:#E08A3B"></i>內部審核中 <b style="color:#1B2A3A">2</b></span><span><i class="dot" style="background:#7A5CC0"></i>已閉環 <b style="color:#1B2A3A">1</b></span></div>
+        <div id="donutCorr"><svg class="svgchart" width="200" height="200" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet" style="aspect-ratio:200/200" role="img"><path class="seg" d="M 100.000 22.000 A 78 78 0 1 1 81.333 175.733" fill="none" stroke="#2E9E6B" stroke-width="26" stroke-linecap="butt"><title>已回復 / Replied: 7</title></path><path class="seg" d="M 81.333 175.733 A 78 78 0 0 1 27.069 127.659" fill="none" stroke="#3A9BB5" stroke-width="26" stroke-linecap="butt"><title>待回復 / Pending Response: 2</title></path><path class="seg" d="M 27.069 127.659 A 78 78 0 0 1 22.569 90.598" fill="none" stroke="#E0A93B" stroke-width="26" stroke-linecap="butt"><title>準備中 / In Preparation: 1</title></path><path class="seg" d="M 22.569 90.598 A 78 78 0 0 1 63.752 30.934" fill="none" stroke="#E08A3B" stroke-width="26" stroke-linecap="butt"><title>內部審核中 / Under Internal Review: 2</title></path><path class="seg" d="M 63.752 30.934 A 78 78 0 0 1 100.000 22.000" fill="none" stroke="#7A5CC0" stroke-width="26" stroke-linecap="butt"><title>已閉環 / Closed: 1</title></path><text x="100" y="96" text-anchor="middle" font-size="30" font-weight="800" fill="#0E2A47">13</text><text x="100" y="118" text-anchor="middle" font-size="11" fill="#5E7184">合計 / Total</text></svg></div>
+        <div class="legend" id="legCorr"><span><i class="dot" style="background:#2E9E6B"></i>已回復 / Replied <b style="color:#1B2A3A">7</b></span><span><i class="dot" style="background:#3A9BB5"></i>待回復 / Pending Response <b style="color:#1B2A3A">2</b></span><span><i class="dot" style="background:#E0A93B"></i>準備中 / In Preparation <b style="color:#1B2A3A">1</b></span><span><i class="dot" style="background:#E08A3B"></i>內部審核中 / Under Internal Review <b style="color:#1B2A3A">2</b></span><span><i class="dot" style="background:#7A5CC0"></i>已閉環 / Closed <b style="color:#1B2A3A">1</b></span></div>
         <div class="chart-click-hint">點擊扇區／圖例可篩選信函 · Click a segment or legend to filter correspondence</div>
       </div>
     </div>
@@ -537,7 +540,9 @@ function renderKPIs(){
   const AW=allWork();
   const wDone=AW.filter(w=>w.status==="done").length;
   const wPlan=AW.filter(w=>w.status==="planned").length;
-  const rc={}; DATA.corr.forEach(c=>{ const k=stKey(c.raw_status); rc[k]=(rc[k]||0)+1; });
+  const rc={}; const rawByKey={};
+  DATA.corr.forEach(c=>{ const k=stKey(c.raw_status); rc[k]=(rc[k]||0)+1;
+    if(!rawByKey[k] && c.raw_status) rawByKey[k]=c.raw_status; });   // verbatim zh/en e.g. "已回復 / Replied"
   const dates=AW.map(w=>w.date).filter(Boolean).sort();
   const first=dates[0], last=dates[dates.length-1];
   const mSpan=Math.max(1,Math.round((new Date(last)-new Date(first))/(1000*60*60*24*30.44)));
@@ -550,7 +555,7 @@ function renderKPIs(){
     {cls:"k2", label:bi("專題階段","Work Phases"), val:String(DATA.phases.length),
       sub:"勘察測量 · 初步設計 · 招標", subEn:"Survey · Preliminary Design · Tendering"},
     {cls:"k3", label:bi("信函往來總數","Correspondence"), val:String(DATA.corr.length),
-      sub:RAW_ORDER.filter(s=>rc[s]).map(s=>`${s} ${rc[s]}`).join(" · "),
+      sub:RAW_ORDER.filter(s=>rc[s]).map(s=>`${rawByKey[s]||s} ${rc[s]}`).join(" · "),
       subEn:""},
     {cls:"k4", label:bi("工作時間跨度","Time Span"), val:`${first} – ${last}`, k4:true,
       sub:`涵蓋 ${mSpan} 個月`, subEn:`${mSpan} months covered`},
@@ -844,8 +849,10 @@ function renderAll(){
   renderKPIs();
   const seg=DATA.phases.map(p=>({label:p.zh+" "+p.en,value:allWork().filter(w=>w.phase===p.id).length,color:PCOLOR[p.id],key:p.id}));
   donut("donutPhase",seg,"legPhase",k=>`onPhaseSeg('${k}')`);
-  const rc2={}; DATA.corr.forEach(c=>{ const k=stKey(c.raw_status); rc2[k]=(rc2[k]||0)+1; });
-  const cseg=RAW_ORDER.filter(s=>rc2[s]).map(s=>({label:s,value:rc2[s],color:RAW_COLOR[s],key:s}));
+  const rc2={}, rawByKey2={};
+  DATA.corr.forEach(c=>{ const k=stKey(c.raw_status); rc2[k]=(rc2[k]||0)+1;
+    if(!rawByKey2[k] && c.raw_status) rawByKey2[k]=c.raw_status; });
+  const cseg=RAW_ORDER.filter(s=>rc2[s]).map(s=>({label:rawByKey2[s]||s,value:rc2[s],color:RAW_COLOR[s],key:s}));
   donut("donutCorr",cseg,"legCorr",k=>`onCorrSeg('${k}')`);
   const lg=barMonthly("barMonthly");
   document.getElementById("monthlyLegend").innerHTML=lg;
