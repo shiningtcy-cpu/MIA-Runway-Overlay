@@ -322,7 +322,10 @@
   #tab-upcoming:checked ~ .wrap #panel-upcoming,
   #tab-work:checked     ~ .wrap #panel-work,
   #tab-corr:checked     ~ .wrap #panel-corr,
-  #tab-timeline:checked ~ .wrap #panel-timeline{display:block;}
+  #tab-timeline:checked ~ .wrap #panel-timeline,
+  #tab-schedule:checked ~ .wrap #panel-schedule{display:block;}
+  /* schedule tab breaks the 1240px frame for a wider Gantt canvas (other tabs stay 1240) */
+  #tab-schedule:checked ~ .wrap{max-width:1760px;}
   nav.tabs label{cursor:pointer;background:var(--card);border:1px solid var(--line);color:var(--muted);
     padding:10px 18px;border-radius:10px 10px 0 0;font-size:14px;font-weight:600;transition:.18s;display:inline-block;}
   nav.tabs label:hover{color:var(--navy);}
@@ -330,7 +333,8 @@
   #tab-upcoming:checked ~ nav.tabs label[for="tab-upcoming"],
   #tab-work:checked     ~ nav.tabs label[for="tab-work"],
   #tab-corr:checked     ~ nav.tabs label[for="tab-corr"],
-  #tab-timeline:checked ~ nav.tabs label[for="tab-timeline"]{background:var(--navy);color:#fff;border-color:var(--navy);}
+  #tab-timeline:checked ~ nav.tabs label[for="tab-timeline"],
+  #tab-schedule:checked ~ nav.tabs label[for="tab-schedule"]{background:var(--navy);color:#fff;border-color:var(--navy);}
   .corr-pane{display:none;}
   #corr-out:checked ~ .tbl-wrap #corr-out-pane,
   #corr-in:checked  ~ .tbl-wrap #corr-in-pane{display:block;}
@@ -338,6 +342,129 @@
   .subtabs label:hover{color:var(--navy);}
   #corr-out:checked ~ .subtabs label[for="corr-out"],
   #corr-in:checked  ~ .subtabs label[for="corr-in"]{background:var(--navy);color:#fff;}
+
+/* ===== 總進度計劃 Master Schedule Gantt (namespaced ms-) ===== */
+:root{
+  --ms-navy:#1F3A5F;--ms-blue:#2E6FB5;--ms-line:#e3eaf2;
+  --ms-sans:-apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,Roboto,Arial,sans-serif;
+  --ms-w-ph:132px;--ms-w-seq:46px;--ms-w-wk:336px;--ms-w-dt:162px;
+  --ms-l-seq:132px;--ms-l-wk:178px;--ms-l-dt:514px;
+  --ms-rh:44px;--ms-bh:24px;
+}
+.ms-shell{background:#fff;border:1px solid var(--ms-line);border-radius:12px;overflow:hidden;
+  font-family:var(--ms-sans);color:#1f2c3a;font-size:14px;}
+.ms-shell *{box-sizing:border-box;}
+.ms-shell:fullscreen{border-radius:0;border:none;}
+
+/* ---------- toolbar ---------- */
+.ms-tb1,.ms-tb2{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:11px 14px;}
+.ms-tb1{border-bottom:1px solid var(--ms-line);}
+.ms-tb2{border-bottom:1px solid var(--ms-line);background:#fafcfe;}
+.ms-tabs{display:inline-flex;background:#eef2f6;border-radius:9px;padding:3px;}
+.ms-tabs button{border:none;background:transparent;padding:8px 16px;border-radius:7px;cursor:pointer;
+  font-size:13.5px;color:#33414f;font-family:var(--ms-sans);}
+.ms-tabs button.on{background:var(--ms-blue);color:#fff;font-weight:600;box-shadow:0 1px 4px rgba(46,111,181,.35);}
+.ms-grp{display:inline-flex;align-items:center;gap:6px;padding:0 4px;}
+.ms-cap{font-size:11.5px;color:#8494a6;}
+.ms-btn{border:1px solid #d5dfea;background:#fff;color:#2c3e52;border-radius:7px;padding:6px 11px;
+  cursor:pointer;font-size:12.5px;font-family:var(--ms-sans);line-height:1.2;transition:.12s;}
+.ms-btn:hover{background:#eef5fc;border-color:#a9c6e6;color:#1b4d80;}
+.ms-btn.on{background:var(--ms-blue);border-color:var(--ms-blue);color:#fff;font-weight:600;}
+.ms-btn.ico{font-size:15px;font-weight:700;padding:5px 11px;}
+.ms-zlbl{font-size:12px;color:#5b6b7e;min-width:78px;text-align:center;font-variant-numeric:tabular-nums;}
+.ms-sep{width:1px;height:22px;background:var(--ms-line);margin:0 2px;}
+.ms-legend{display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+.ms-legend .ms-lg{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:#3d4d5f;
+  background:#fff;border:1px solid #e1e9f2;border-radius:20px;padding:3px 10px 3px 6px;cursor:pointer;transition:.12s;}
+.ms-legend .ms-lg:hover{border-color:#a9c6e6;background:#f2f8ff;box-shadow:0 1px 4px rgba(20,40,70,.08);}
+.ms-legend .ms-sw{width:12px;height:12px;border-radius:50%;display:inline-block;flex:0 0 12px;}
+.ms-legend .ms-lg .ms-n{color:#93a1b1;font-size:10.5px;}
+.ms-legend .ms-lg .ms-pn{font-weight:600;}
+.ms-legend .ms-lg .ms-pen{font-size:9.5px;opacity:.82;margin-left:5px;}
+
+/* ---------- gantt frame ---------- */
+.ms-gbox{overflow:auto;max-height:74vh;position:relative;background:#fff;}
+.ms-shell:fullscreen .ms-gbox{max-height:calc(100vh - 168px);}
+.ms-gstage{position:relative;}
+.ms-overlay{position:absolute;pointer-events:none;z-index:0;}
+.ms-overlay .ms-mb{position:absolute;top:0;bottom:0;background:#f7fafd;}
+.ms-overlay .ms-ml{position:absolute;top:0;bottom:0;width:1px;background:#edf1f6;}
+.ms-overlay .ms-yl{position:absolute;top:0;bottom:0;width:2px;background:#cfdbe8;}
+.ms-overlay .ms-tdl{position:absolute;top:0;bottom:0;width:2px;background:#e2492f;z-index:2;}
+.ms-overlay .ms-tdl span{position:absolute;top:3px;left:4px;font-size:10px;color:#e2492f;font-weight:700;
+  white-space:nowrap;background:rgba(255,255,255,.86);padding:1px 4px;border-radius:3px;}
+
+/* width/min-width/font-size are re-declared to neutralise the host page's bare
+   `table{width:100%;min-width:920px;font-size:..}` rule when embedded. */
+table.ms-gt{border-collapse:separate;border-spacing:0;table-layout:fixed;margin:0;
+  width:auto;min-width:0;font-size:14px;}
+/* fixed column widths -- MUST match the sticky left offsets and LEFT_W in JS */
+#ms-c1{width:var(--ms-w-ph);}#ms-c2{width:var(--ms-w-seq);}
+#ms-c3{width:var(--ms-w-wk);}#ms-c4{width:var(--ms-w-dt);}
+.ms-gt th,.ms-gt td{padding:0;vertical-align:middle;border:none;}
+.ms-gt thead th{position:sticky;top:0;background:#f4f8fc;border-bottom:2px solid #dbe5ef;
+  font-size:11.5px;color:#5b6b7e;font-weight:600;text-align:center;height:56px;text-transform:none;letter-spacing:0;}
+.ms-gt thead th.ms-c-ph{z-index:6;left:0;}
+.ms-gt thead th.ms-c-seq{z-index:6;left:var(--ms-l-seq);}
+.ms-gt thead th.ms-c-wk{z-index:6;left:var(--ms-l-wk);}
+.ms-gt thead th.ms-c-dt{z-index:6;left:var(--ms-l-dt);}
+.ms-gt thead th.ms-c-tl{z-index:4;padding:0;text-align:left;}
+.ms-gt thead th.ms-c-ph,.ms-gt thead th.ms-c-seq,
+.ms-gt thead th.ms-c-wk,.ms-gt thead th.ms-c-dt{position:sticky;}
+.ms-gt thead th b{display:block;color:var(--ms-navy);font-size:12.5px;font-weight:700;}
+.ms-gt thead th i{display:block;font-style:normal;font-size:10px;opacity:.8;}
+
+/* neutralise a host page's zebra / row-hover striping (`tbody tr:nth-child(even)`)
+   -- the timeline cell is transparent, so a tinted <tr> would bleed through. */
+.ms-gt tbody tr{height:var(--ms-rh);background:transparent;}
+.ms-gt tbody tr:nth-child(even){background:transparent;}
+.ms-gt tbody tr:hover{background:transparent;}
+.ms-gt tbody td.ms-c-ph,.ms-gt tbody td.ms-c-seq,
+.ms-gt tbody td.ms-c-wk,.ms-gt tbody td.ms-c-dt{
+  position:sticky;background:#fff;z-index:3;border-bottom:1px solid var(--ms-line);}
+.ms-gt tbody td.ms-c-ph{left:0;z-index:4;color:#fff;text-align:center;padding:6px 7px;
+  border-bottom:2px solid #fff;border-right:1px solid rgba(255,255,255,.35);}
+.ms-gt tbody td.ms-c-ph .ms-pz{font-size:12.5px;font-weight:700;line-height:1.3;}
+.ms-gt tbody td.ms-c-ph .ms-pe{font-size:9.5px;line-height:1.25;opacity:.9;margin-top:3px;}
+.ms-gt tbody td.ms-c-seq{left:var(--ms-l-seq);text-align:center;color:#8a98a8;font-size:11.5px;
+  border-right:1px solid #f1f5f9;}
+.ms-gt tbody td.ms-c-wk{left:var(--ms-l-wk);padding:4px 10px;border-right:1px solid #f1f5f9;}
+.ms-gt tbody td.ms-c-wk .ms-wz{font-size:13px;font-weight:600;color:#1f2c3a;line-height:1.3;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ms-gt tbody td.ms-c-wk .ms-we{font-size:10.5px;color:#7d8c9d;line-height:1.25;margin-top:1px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ms-gt tbody td.ms-c-wk .ms-wr{font-size:10px;color:#a2723a;background:#fdf6e8;border-radius:3px;
+  padding:2px 5px;margin-top:3px;line-height:1.35;}
+.ms-gt.ms-rem tbody td.ms-c-wk .ms-wz,
+.ms-gt.ms-rem tbody td.ms-c-wk .ms-we{white-space:normal;}
+.ms-gt tbody td.ms-c-dt{left:var(--ms-l-dt);padding:4px 10px;text-align:right;border-right:1px solid #e6edf5;}
+.ms-gt tbody td.ms-c-dt .ms-dd{font-size:11px;color:#46566a;font-variant-numeric:tabular-nums;}
+.ms-gt tbody td.ms-c-dt .ms-de{font-size:11px;color:#8a98a8;font-variant-numeric:tabular-nums;margin-top:1px;}
+.ms-gt tbody td.ms-c-tl{position:relative;background:transparent;border-bottom:1px solid var(--ms-line);}
+.ms-gt tbody tr:hover td.ms-c-tl{background:rgba(46,111,181,.055);}
+.ms-gt tbody tr:hover td.ms-c-wk{background:#f7fbff;}
+.ms-gt tbody tr.ms-flash td.ms-c-wk,.ms-gt tbody tr.ms-flash td.ms-c-tl{background:#fff6d8;}
+
+.ms-bar{position:absolute;top:50%;transform:translateY(-50%);height:var(--ms-bh);border-radius:5px;
+  min-width:4px;z-index:2;box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default;transition:filter .12s;}
+.ms-bar:hover{filter:brightness(1.1);box-shadow:0 2px 7px rgba(0,0,0,.28);}
+.ms-bar .ms-bl{position:absolute;left:7px;top:50%;transform:translateY(-50%);color:#fff;font-size:10.5px;
+  white-space:nowrap;pointer-events:none;text-shadow:0 1px 1px rgba(0,0,0,.3);font-variant-numeric:tabular-nums;}
+
+.ms-ax{position:relative;}
+.ms-ax .ms-yrow{display:flex;height:28px;border-bottom:1px solid #e3eaf2;}
+.ms-ax .ms-yrow .ms-yc{flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-weight:700;
+  color:var(--ms-navy);font-size:12.5px;border-right:2px solid #cfdbe8;background:#eef4fa;}
+.ms-ax .ms-mrow{display:flex;height:27px;}
+.ms-ax .ms-mrow .ms-mc{flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:10.5px;
+  color:#6b7a8c;border-right:1px solid #e8eef5;overflow:hidden;white-space:nowrap;}
+.ms-ax .ms-tt{position:absolute;top:0;bottom:0;width:2px;background:#e2492f;z-index:3;}
+.ms-ax .ms-tt:after{content:"";position:absolute;top:-1px;left:-3px;width:8px;height:8px;border-radius:50%;
+  background:#e2492f;}
+.ms-foot{padding:11px 14px;font-size:11.5px;color:#8a98a8;border-top:1px solid var(--ms-line);
+  display:flex;gap:16px;flex-wrap:wrap;}
+.ms-miss{padding:26px 18px;font-size:13px;color:#8a5b2b;background:#fdf6e8;border-radius:8px;line-height:1.7;}
+
 </style>
 </head>
 <body>
@@ -362,12 +489,14 @@
 <input class="tab-radio" type="radio" name="mtab" id="tab-work">
 <input class="tab-radio" type="radio" name="mtab" id="tab-corr">
 <input class="tab-radio" type="radio" name="mtab" id="tab-timeline">
+<input class="tab-radio" type="radio" name="mtab" id="tab-schedule">
 <nav class="tabs">
   <label for="tab-overview">概覽 Overview</label>
   <label for="tab-upcoming">近期工作 Upcoming</label>
   <label for="tab-work">專題工作台賬 Work Ledger</label>
   <label for="tab-corr">信函匯總 Correspondence</label>
   <label for="tab-timeline">時間軸 Timeline</label>
+  <label for="tab-schedule">總進度計劃 Master Schedule</label>
 </nav>
 
 <div class="wrap">
@@ -476,6 +605,80 @@
         </div>
         <div class="up-list" id="upList"><div class="up-item"><div class="up-date">2026-07-30</div><div class="up-body"><span class="up-tag letter">待發信函 Letter to be Issued</span><span class="up-title"><span class="zh">澳門瀝青施工資源資料徵詢函</span><span class="en-sub">Inquiry on Macau Asphalt Paving Resources</span></span><div class="up-meta"><span class="cat-chip" style="background:#7A5CC0">瀝青 Asphalt</span><div class="up-status st-review">內部審核中 / Under Internal Review</div></div></div></div><div class="up-item"><div class="up-date">2026-08-17</div><div class="up-body"><span class="up-tag letter">待發信函 Letter to be Issued</span><span class="up-title"><span class="zh">試驗段要求</span><span class="en-sub">Test Section Requirements</span></span><div class="up-meta"><span class="cat-chip" style="background:#7A5CC0">瀝青 Asphalt</span><div class="up-status st-review">內部審核中 / Under Internal Review</div></div></div></div><div class="up-item"><div class="up-date">2026-08-28</div><div class="up-body"><span class="up-title"><span class="zh">施工道口方案更新</span><span class="en-sub">Construction Gate Scheme Update</span></span><div class="up-meta">負責人 Owner: 賀喜 HE Xi<div class="up-status st-done">已完成 / Completed</div></div></div></div><div class="up-item"><div class="up-date">2026-09-02</div><div class="up-body"><span class="up-title"><span class="zh">招標文件更新</span><span class="en-sub">Tender Documents Update</span></span><div class="up-meta">負責人 Owner: PCM<div class="up-status st-prog">進行中 / In Progress</div></div></div></div><div class="up-item"><div class="up-date">2026-09-10</div><div class="up-body"><span class="up-title"><span class="zh">勘察報告</span><span class="en-sub">Site Investigation Report</span></span><div class="up-meta">負責人 Owner: 張國棟 ZHANG Guodong<div class="up-status st-prog">進行中 / In Progress</div></div></div></div><div class="up-item"><div class="up-date none">待定 TBD</div><div class="up-body"><span class="up-tag letter">待發信函 Letter to be Issued</span><span class="up-title"><span class="zh">招標方案的建議</span><span class="en-sub">Tender-Plan Suggestion</span></span><div class="up-meta"><span class="cat-chip" style="background:#C8A24B">招標 Tendering</span><div class="up-status">準備中 / In Preparation</div></div></div></div></div>
       </div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-schedule">
+    <div class="card">
+      <h2>總進度計劃 <span class="en">Master Schedule</span></h2>
+      <div class="ms-shell" id="ms-shell">
+  <div class="ms-tb1">
+    <div class="ms-tabs">
+      <button id="ms-t-detail" class="on" onclick="MS.switchView('detail')">詳細節點版 Detailed</button>
+      <button id="ms-t-main" onclick="MS.switchView('main')">主要節點版 Key Nodes</button>
+    </div>
+    <div class="ms-sep"></div>
+    <div class="ms-grp">
+      <span class="ms-cap">縮放 Zoom</span>
+      <button class="ms-btn ico" onclick="MS.zoom(1/1.35)" title="縮小 Zoom out">&minus;</button>
+      <span class="ms-zlbl" id="ms-zlbl">—</span>
+      <button class="ms-btn ico" onclick="MS.zoom(1.35)" title="放大 Zoom in">+</button>
+      <button class="ms-btn" onclick="MS.preset('week')">週 Week</button>
+      <button class="ms-btn" onclick="MS.preset('month')">月 Month</button>
+      <button class="ms-btn" onclick="MS.preset('quarter')">季 Quarter</button>
+      <button class="ms-btn" onclick="MS.fit()">適應寬度 Fit</button>
+    </div>
+    <div class="ms-sep"></div>
+    <div class="ms-grp">
+      <span class="ms-cap">定位 Locate</span>
+      <button class="ms-btn" onclick="MS.goToday()">今日 Today</button>
+      <button class="ms-btn" onclick="MS.goEdge(0)">起點 Start</button>
+      <button class="ms-btn" onclick="MS.goEdge(1)">終點 End</button>
+    </div>
+    <div class="ms-sep"></div>
+    <div class="ms-grp">
+      <span class="ms-cap">行高 Rows</span>
+      <button class="ms-btn" id="ms-d-s" onclick="MS.dens('s')">Compact</button>
+      <button class="ms-btn on" id="ms-d-m" onclick="MS.dens('m')">Medium</button>
+      <button class="ms-btn" id="ms-d-l" onclick="MS.dens('l')">Loose</button>
+    </div>
+    <div class="ms-sep"></div>
+    <div class="ms-grp">
+      <button class="ms-btn" id="ms-b-rem" onclick="MS.toggleRem()">備註 Remarks</button>
+      <button class="ms-btn" onclick="MS.fullscreen()">全屏 Fullscreen</button>
+    </div>
+  </div>
+  <div class="ms-tb2">
+    <span class="ms-cap">階段 Phase（點擊定位 / click to locate）：</span>
+    <div class="ms-legend" id="ms-legend"></div>
+  </div>
+
+  <div class="ms-gbox" id="ms-gbox">
+    <div class="ms-gstage" id="ms-gstage">
+      <div class="ms-overlay" id="ms-overlay"></div>
+      <table class="ms-gt" id="ms-gt">
+        <colgroup>
+          <col id="ms-c1"><col id="ms-c2"><col id="ms-c3"><col id="ms-c4"><col id="ms-cTl">
+        </colgroup>
+        <thead><tr>
+          <th class="ms-c-ph"><b>階段</b><i>Phase</i></th>
+          <th class="ms-c-seq"><b>#</b><i>No.</i></th>
+          <th class="ms-c-wk"><b>工作項目</b><i>Work Item</i></th>
+          <th class="ms-c-dt"><b>開始 → 完成</b><i>Start → Finish · Duration</i></th>
+          <th class="ms-c-tl">
+            <div class="ms-ax" id="ms-ax">
+              <div class="ms-yrow" id="ms-yrow"></div>
+              <div class="ms-mrow" id="ms-mrow"></div>
+              <div class="ms-tt" id="ms-todaytick"></div>
+            </div>
+          </th>
+        </tr></thead>
+        <tbody id="ms-tb"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="ms-foot" id="ms-foot"></div>
+</div>
     </div>
   </section>
 
@@ -1016,6 +1219,227 @@ function renderAll(){
 }
 renderAll();
 
+</script>
+
+<!-- ===== 總進度計劃 Master Schedule Gantt (isolated IIFE -> window.MS) ===== -->
+<script>
+/* ===== 總進度計劃 Master Schedule Gantt — self-contained, exposes window.MS ===== */
+(function(){
+const D = {"detail": [{"seq": "1", "phase": "人員證件辦理及保險", "phaseEn": "Personnel Documentation and Insurance", "work": "因公證件辦理", "workEn": "Official Travel / Duty-related Document Processing", "sd": "2026-01-01", "ed": "2026-03-10", "dur": "68", "rem": "", "remEn": "", "gspan": 5, "color": "#2E6FB5"}, {"seq": "2", "phase": "人員證件辦理及保險", "phaseEn": "Personnel Documentation and Insurance", "work": "逗留證辦理", "workEn": "Stay Permit Application", "sd": "2026-03-10", "ed": "2026-04-01", "dur": "22", "rem": "於4月1日完成。", "remEn": "To be completed by April 1.", "gspan": 0, "color": "#2E6FB5"}, {"seq": "3", "phase": "人員證件辦理及保險", "phaseEn": "Personnel Documentation and Insurance", "work": "職安卡辦理", "workEn": "Occupational Safety Card Application", "sd": "2026-04-01", "ed": "2026-04-30", "dur": "29", "rem": "職安卡（1周），根據進場時間和勞工局安排分批次培訓和辦理。", "remEn": "Occupational Safety Card: approximately 1 week.", "gspan": 0, "color": "#2E6FB5"}, {"seq": "4", "phase": "人員證件辦理及保險", "phaseEn": "Personnel Documentation and Insurance", "work": "機場通行證辦理", "workEn": "Airport Access Pass Application", "sd": "2026-04-01", "ed": "2026-05-10", "dur": "39", "rem": "機場通行證已於5月10日辦理完成。", "remEn": "The airport pass was issued on May 10.", "gspan": 0, "color": "#2E6FB5"}, {"seq": "5", "phase": "人員證件辦理及保險", "phaseEn": "Personnel Documentation and Insurance", "work": "僱員保險", "workEn": "Employee Insurance Coverage", "sd": "2026-04-01", "ed": "2026-05-06", "dur": "35", "rem": "根據合約要求，需盡快提交，主要在檢測人員開展現場工作前提交。", "remEn": "In accordance with the Contract requirements, all relevant applications shall be submitted as soon as practicable, prior to the commencement of on-site activities by testing personnel.", "gspan": 0, "color": "#2E6FB5"}, {"seq": "6", "phase": "勘察、測量", "phaseEn": "Investigation and Survey", "work": "勘察方案報批", "workEn": "Submission and Approval of Investigation Plan", "sd": "2026-01-15", "ed": "2026-05-15", "dur": "120", "rem": "春節期間影響，前期證件辦理、機械進場、機場通行證等手續時間較長。", "remEn": "Impact During the Spring Festival Period，The processing time for preliminary permits, approvals, and mobilization of equipment，Airport Pass is relatively long.", "gspan": 4, "color": "#1F4E79"}, {"seq": "7", "phase": "勘察、測量", "phaseEn": "Investigation and Survey", "work": "基礎資料收集", "workEn": "Collection of Baseline Data", "sd": "2026-04-15", "ed": "2026-04-20", "dur": "5", "rem": "", "remEn": "", "gspan": 0, "color": "#1F4E79"}, {"seq": "8", "phase": "勘察、測量", "phaseEn": "Investigation and Survey", "work": "勘察作業", "workEn": "Investigation Works", "sd": "2026-05-15", "ed": "2026-08-25", "dur": "102", "rem": "有效檢測時間40天，每週作業3天、每日航後2小時。", "remEn": "由於脫空檢測(3D探地雷達檢測)需要在幹燥路面進行作業，5月澳門已進入雷雨季節，因此在原計劃40d基礎上加17d考慮。 The effective inspection duration is 40 days，Post-flight operations shall be carried out3 days per week and 2 hours per day. As void detection (3D GPR testing) must be conducted on dry pavement surfaces, and Macau enters the thunderstorm season in May, an additional 17 days are required on top of the originally planned 40 days.", "gspan": 0, "color": "#1F4E79"}, {"seq": "9", "phase": "勘察、測量", "phaseEn": "Investigation and Survey", "work": "工程勘探報告出版", "workEn": "Issuance of the Investigation Report", "sd": "2026-08-10", "ed": "2026-08-31", "dur": "21", "rem": "含工程勘探報告編制、審核、出版。", "remEn": "The scope includes preparation, review, and issuance of the investigation report.", "gspan": 0, "color": "#1F4E79"}, {"seq": "10", "phase": "初步設計", "phaseEn": "Preliminary Design", "work": "初步設計", "workEn": "Preliminary Design", "sd": "2026-01-01", "ed": "2026-07-15", "dur": "195", "rem": "5月31日前提交初步設計V1.0給CAM審核；勘察報告完成後10天完善並出版初步設計文件，提供第三方審核，同步報AACM、DSSCU審核。", "remEn": "Submit the preliminary design V1.0 to CAM for review by May 31; complete and publish the preliminary design documents within 10 days after finalizing the survey report, submit them for third-party review, and concurrently submit them to AACM and DSSCU for review.", "gspan": 5, "color": "#3FA7A0"}, {"seq": "11", "phase": "初步設計", "phaseEn": "Preliminary Design", "work": "瀝青混凝土供料方案論證", "workEn": "Validation of Asphalt Concrete Supply Scheme", "sd": "2026-04-20", "ed": "2026-07-15", "dur": "86", "rem": "包括供料模式、拌合站設置、運輸組織等。", "remEn": "Including feeding modes, mixing station configuration, and transportation organization.", "gspan": 0, "color": "#3FA7A0"}, {"seq": "12", "phase": "初步設計", "phaseEn": "Preliminary Design", "work": "第三方及CAM審核", "workEn": "Third-party and CAM review", "sd": "2026-06-01", "ed": "2026-08-15", "dur": "75", "rem": "審核完成後立即向AACM汇报初步设计情况。", "remEn": "Upon completion of the review, immediately report the design details to AACM..", "gspan": 0, "color": "#3FA7A0"}, {"seq": "13", "phase": "初步設計", "phaseEn": "Preliminary Design", "work": "向AACM汇报初设", "workEn": "Report the design to AACM.", "sd": "2026-08-15", "ed": "2026-09-15", "dur": "31", "rem": "", "remEn": "", "gspan": 0, "color": "#3FA7A0"}, {"seq": "14", "phase": "初步設計", "phaseEn": "Preliminary Design", "work": "招标文件中“技术规格书”、图纸、设计要求等", "workEn": "The \"Technical Specifications,\" drawings, design requirements, and other documents included in the tender documents", "sd": "2026-08-11", "ed": "2026-09-30", "dur": "50", "rem": "與招標文件編制同步完善、完成", "remEn": "To be refined and completed in parallel with the preparation of the tender documents.", "gspan": 0, "color": "#3FA7A0"}, {"seq": "15", "phase": "不停航施工方案編制", "phaseEn": "Construction plan in Operating Airport", "work": "不停航施工方案（初設階段）", "workEn": "Non-Stop  Construction Plan (Preliminary Design Stage)", "sd": "2026-04-01", "ed": "2026-06-15", "dur": "75", "rem": "", "remEn": "", "gspan": 5, "color": "#E0A100"}, {"seq": "16", "phase": "不停航施工方案編制", "phaseEn": "Construction plan in Operating Airport", "work": "第三方獨立審查 民航運作管理顧問審查", "workEn": "Third-Party Independent Review / Civil Aviation Operations Management Consultant Review", "sd": "2026-06-15", "ed": "2026-07-15", "dur": "30", "rem": "", "remEn": "", "gspan": 0, "color": "#E0A100"}, {"seq": "17", "phase": "不停航施工方案編制", "phaseEn": "Construction plan in Operating Airport", "work": "CAM內部審查", "workEn": "CAM Internal Review", "sd": "2026-06-15", "ed": "2026-07-15", "dur": "30", "rem": "考慮方案多輪修改、完善 及審核。", "remEn": "Consider multiple rounds of revisions, refinements, and reviews of the proposal.", "gspan": 0, "color": "#E0A100"}, {"seq": "18", "phase": "不停航施工方案編制", "phaseEn": "Construction plan in Operating Airport", "work": "AACM審查", "workEn": "AACM Review", "sd": "2026-07-15", "ed": "2026-09-15", "dur": "62", "rem": "官方審批時長為30天（不含補充、調整、現場勘察等事宜），本事宜按提前溝通、報批、補件、多轮意见修改等按照4個月計入。", "remEn": "The official approval process takes 30 days (excluding supplementary materials, adjustments, on-site inspections, and related procedures). For this matter, the four-month timeline includes preliminary communication, approval submission, submission of additional documents, and multiple rounds of revisions based on feedback.", "gspan": 0, "color": "#E0A100"}, {"seq": "19", "phase": "不停航施工方案編制", "phaseEn": "Construction plan in Operating Airport", "work": "招標文件中“不停航施工條件”章節", "workEn": "Preparation of the “Non-Stop Construction ” Section in the Tender Documents", "sd": "2026-07-15", "ed": "2026-09-30", "dur": "77", "rem": "與招標文件編制同步完善、完成", "remEn": "To be refined and completed in parallel with the preparation of the tender documents.", "gspan": 0, "color": "#E0A100"}, {"seq": "20", "phase": "造價編製", "phaseEn": "Cost Estimation", "work": "投资估算V1.0", "workEn": "Cost Estimate V1.0", "sd": "2026-06-01", "ed": "2026-07-25", "dur": "54", "rem": "完成初設後10天。", "remEn": "10 days after the completion of preliminary design.", "gspan": 4, "color": "#4F9D5B"}, {"seq": "21", "phase": "造價編製", "phaseEn": "Cost Estimation", "work": "CAM内部审核", "workEn": "CAM Internal Review", "sd": "2026-07-26", "ed": "2026-08-15", "dur": "20", "rem": "", "remEn": "", "gspan": 0, "color": "#4F9D5B"}, {"seq": "22", "phase": "造價編製", "phaseEn": "Cost Estimation", "work": "调整优化，投资估算V2.0、编制资金需求表", "workEn": "Adjustment and Optimization, Cost Estimate V2.0, Preparation of Fund Requirement Statement", "sd": "2026-08-16", "ed": "2026-09-10", "dur": "25", "rem": "", "remEn": "", "gspan": 0, "color": "#4F9D5B"}, {"seq": "23", "phase": "造價編製", "phaseEn": "Cost Estimation", "work": "招标文件中\"單價表SOR\"编制", "workEn": "Preparation of the \"Unit Price Table SOR\" in the tender documents", "sd": "2026-06-01", "ed": "2026-09-30", "dur": "121", "rem": "與招標文件編制同步完善、完成", "remEn": "To be refined and completed in parallel with the preparation of the tender documents.", "gspan": 0, "color": "#4F9D5B"}, {"seq": "24", "phase": "進度計劃編制", "phaseEn": "Progress Plan Preparation", "work": "施工进度计划编排", "workEn": "Construction Schedule Planning", "sd": "2026-05-11", "ed": "2026-08-31", "dur": "112", "rem": "", "remEn": "", "gspan": 2, "color": "#8E5BA6"}, {"seq": "25", "phase": "進度計劃編制", "phaseEn": "Progress Plan Preparation", "work": "招标文件中\"关键工期\"章节编制", "workEn": "Preparation of \"Key Milestones/Schedule\" Section in Tender Documents", "sd": "2026-08-31", "ed": "2026-09-30", "dur": "30", "rem": "與招標文件編制同步完善、完成", "remEn": "To be refined and completed in parallel with the preparation of the tender documents.", "gspan": 0, "color": "#8E5BA6"}, {"seq": "26", "phase": "環評", "phaseEn": "Environmental Assessment", "work": "環評報告編寫", "workEn": "Preparation of Environmental Assessment Report", "sd": "2026-05-01", "ed": "2026-07-15", "dur": "75", "rem": "", "remEn": "", "gspan": 2, "color": "#D9772B"}, {"seq": "27", "phase": "環評", "phaseEn": "Environmental Assessment", "work": "環評審批", "workEn": "Environmental Assessment Approval", "sd": "2026-07-16", "ed": "2026-09-15", "dur": "61", "rem": "後續進一步明確流程後工期。", "remEn": "The schedule duration will be further defined after the subsequent workflow is clarified.", "gspan": 0, "color": "#D9772B"}, {"seq": "28", "phase": "工程招標", "phaseEn": "Tendering", "work": "標書編寫", "workEn": "Preparation of Tender Documents", "sd": "2026-05-07", "ed": "2026-09-30", "dur": "146", "rem": "", "remEn": "", "gspan": 3, "color": "#C0392B"}, {"seq": "29", "phase": "工程招標", "phaseEn": "Tendering", "work": "發布招標公告", "workEn": "Issuance of Tender Announcement", "sd": "2026-09-30", "ed": "2026-10-15", "dur": "15", "rem": "", "remEn": "", "gspan": 0, "color": "#C0392B"}, {"seq": "30", "phase": "工程招標", "phaseEn": "Tendering", "work": "評標判給", "workEn": "Tender Evaluation and Award", "sd": "2026-10-16", "ed": "2026-12-31", "dur": "76", "rem": "", "remEn": "", "gspan": 0, "color": "#C0392B"}, {"seq": "31", "phase": "施工階段", "phaseEn": "Construction Phase", "work": "營地搭設", "workEn": "Hutment setup", "sd": "2027-01-01", "ed": "2027-04-03", "dur": "92", "rem": "", "remEn": "", "gspan": 12, "color": "#2C8C99"}, {"seq": "32", "phase": "施工階段", "phaseEn": "Construction Phase", "work": "確定試鋪段配合比", "workEn": "Final trial paving section mix proportion", "sd": "2027-01-01", "ed": "2027-02-15", "dur": "45", "rem": "", "remEn": "", "gspan": 0, "color": "#2C8C99"}, {"seq": "33", "phase": "施工階段", "phaseEn": "Construction Phase", "work": "试铺前准备", "workEn": "Preparations before the trial installation", "sd": "2027-02-15", "ed": "2027-02-20", "dur": "45", "rem": "包含原材料採購及檢測等。", "remEn": "Including raw material procurement and testing.", "gspan": 0, "color": "#2C8C99"}, {"seq": "34", "phase": "施工階段", "phaseEn": "Construction Phase", "work": "試鋪段準備及驗證", "workEn": "Pre-Trial Section Preparation and Trial Section Verification", "sd": "2027-02-20", "ed": "2027-03-15", "dur": "23", "rem": "準備時間橫跨春節。", "remEn": "Spans the Spring Festival.", "gspan": 0, "color": "#2C8C99"}, {"seq": "35", "phase": "施工階段", "phaseEn": "Construction Phase", "work": "施工圖設計", "workEn": "Construction Drawing Design", "sd": "2027-01-01", "ed": "2027-02-20", "dur": "50", "rem": "春節期間影響，設計時長按50天考慮。", "remEn": "Impact During the Spring Festival Period", "gspan": 0, "color": "#2C8C99"}, {"seq": "36", "phase": "施工階段", "phaseEn": "Construction Phase", "work": "施工圖設計評審", "workEn": "Review of Construction Drawings", "sd": "2027-02-20", "ed": "2027-06-30", "dur": "130", "rem": "因牽涉民航專業審查與澳門政府多部門審批，標準時程約45至90個工作日，若涉及重大變更或複雜系統，可達120個工作日以上。", "remEn": "Due to the involvement of specialized civil aviation reviews and approvals from multiple departments of the Macao government, the standard processing time ranges from 45 to 90 working days; however, for significant changes or complex systems, it may exceed 120 working days.", "gspan": 0, "color": "#2C8C99"}, {"seq": "37", "phase": "施工階段", "phaseEn": "Construction Phase", "work": "不停航施工方案編制及批復審", "workEn": "Preparation and Approval of Non-Stop  Construction Plan", "sd": "2027-01-01", "ed": "2027-06-30", "dur": "180", "rem": "方案編製60日+可能多次修改+專家評審約120～150日工作日，本項目按180日計；", "remEn": "The plan formulation takes 60 days or more, with potential multiple revisions and expert review requiring approximately 120–150 working days; this project is estimated to take 180 days.", "gspan": 0, "color": "#2C8C99"}, {"seq": "38", "phase": "施工階段", "phaseEn": "Construction Phase", "work": "航行通告", "workEn": "NOTAM", "sd": "2027-01-01", "ed": "2027-05-31", "dur": "150", "rem": "按不停航施工前60天發佈考慮。", "remEn": "Considerations shall be issued 60 days before the commencement of non-stop construction.", "gspan": 0, "color": "#2C8C99"}, {"seq": "39", "phase": "施工階段", "phaseEn": "Construction Phase", "work": "沥青拌和站建造", "workEn": "Construction of asphalt mixing plant", "sd": "2027-03-01", "ed": "2027-09-30", "dur": "213", "rem": "前置條件：建設人員相關證件辦理3月1日前完成；", "remEn": "Prerequisite: Completion of relevant documentation for construction personnel by March 1; / 建設時長：標準化建設6~9個月，包括前期審批、基礎建設、設備安裝、設備驗收等，本項目暫按7個月計。 / Construction duration: Standardized construction spans 6 to 9 months, encompassing preliminary approvals, infrastructure construction, equipment installation, and equipment acceptance. For this project, the duration is temporarily estimated at 7 months.", "gspan": 0, "color": "#2C8C99"}, {"seq": "40", "phase": "施工階段", "phaseEn": "Construction Phase", "work": "跑道修補、注漿、排水改造等施工", "workEn": "Runway Rehabilitation and Grouting", "sd": "2027-07-01", "ed": "2027-09-30", "dur": "91", "rem": "", "remEn": "", "gspan": 0, "color": "#2C8C99"}, {"seq": "41", "phase": "施工階段", "phaseEn": "Construction Phase", "work": "瀝青加鋪、助航燈光施工", "workEn": "Asphalt Overlay, Aids-to-Navigation Lighting, and Other Non-stop  Construction", "sd": "2027-10-01", "ed": "2028-03-31", "dur": "182", "rem": "", "remEn": "", "gspan": 0, "color": "#2C8C99"}, {"seq": "42", "phase": "施工階段", "phaseEn": "Construction Phase", "work": "攔阻係統施工", "workEn": "EMAS Construction", "sd": "2028-01-01", "ed": "2028-03-31", "dur": "90", "rem": "", "remEn": "", "gspan": 0, "color": "#2C8C99"}], "main": [{"seq": "1", "phase": "前期工作階段", "phaseEn": "Preliminary  Stage", "work": "相關證件辦理", "workEn": "Document Processing", "sd": "2026-01-01", "ed": "2026-05-10", "dur": "129", "rem": "", "remEn": "", "gspan": 7, "color": "#6B7C8C"}, {"seq": "2", "phase": "前期工作階段", "phaseEn": "Preliminary  Stage", "work": "勘察、測量", "workEn": "Investigation and Survey", "sd": "2026-04-15", "ed": "2026-08-31", "dur": "138", "rem": "", "remEn": "", "gspan": 0, "color": "#6B7C8C"}, {"seq": "3", "phase": "前期工作階段", "phaseEn": "Preliminary  Stage", "work": "初步設計", "workEn": "Preliminary Design", "sd": "2026-01-01", "ed": "2026-09-30", "dur": "272", "rem": "", "remEn": "", "gspan": 0, "color": "#6B7C8C"}, {"seq": "4", "phase": "前期工作階段", "phaseEn": "Preliminary  Stage", "work": "不停航施工方案", "workEn": "Construction plan in Operating Airport", "sd": "2026-04-01", "ed": "2026-09-30", "dur": "182", "rem": "", "remEn": "", "gspan": 0, "color": "#6B7C8C"}, {"seq": "5", "phase": "前期工作階段", "phaseEn": "Preliminary  Stage", "work": "工程造價編制", "workEn": "Cost Estimation", "sd": "2026-06-01", "ed": "2026-09-30", "dur": "121", "rem": "", "remEn": "", "gspan": 0, "color": "#6B7C8C"}, {"seq": "6", "phase": "前期工作階段", "phaseEn": "Preliminary  Stage", "work": "环评报告编写和審批", "workEn": "EIA Preparation and Approval", "sd": "2026-05-01", "ed": "2026-09-15", "dur": "137", "rem": "", "remEn": "", "gspan": 0, "color": "#6B7C8C"}, {"seq": "7", "phase": "前期工作階段", "phaseEn": "Preliminary  Stage", "work": "工程招標", "workEn": "Tendering", "sd": "2026-05-07", "ed": "2026-12-31", "dur": "238", "rem": "", "remEn": "", "gspan": 0, "color": "#6B7C8C"}, {"seq": "8", "phase": "施工階段", "phaseEn": "Construction Stage", "work": "證件辦理、進場準備等", "workEn": "Preparations", "sd": "2027-01-01", "ed": "2027-03-15", "dur": "73", "rem": "", "remEn": "", "gspan": 9, "color": "#2C8C99"}, {"seq": "9", "phase": "施工階段", "phaseEn": "Construction Stage", "work": "試鋪驗證", "workEn": "Trial Section", "sd": "2027-02-15", "ed": "2027-03-15", "dur": "28", "rem": "", "remEn": "", "gspan": 0, "color": "#2C8C99"}, {"seq": "10", "phase": "施工階段", "phaseEn": "Construction Stage", "work": "施工圖設計及評審", "workEn": "Construction Drawings", "sd": "2027-01-01", "ed": "2027-06-30", "dur": "180", "rem": "", "remEn": "", "gspan": 0, "color": "#2C8C99"}, {"seq": "11", "phase": "施工階段", "phaseEn": "Construction Stage", "work": "不停航施工方案编制及批复审", "workEn": "Construction plan in Operating Airport Preparation and Approval", "sd": "2027-01-01", "ed": "2027-06-30", "dur": "180", "rem": "", "remEn": "", "gspan": 0, "color": "#2C8C99"}, {"seq": "12", "phase": "施工階段", "phaseEn": "Construction Stage", "work": "航行通告", "workEn": "NOTAM", "sd": "2027-01-01", "ed": "2027-05-31", "dur": "150", "rem": "", "remEn": "", "gspan": 0, "color": "#2C8C99"}, {"seq": "13", "phase": "施工階段", "phaseEn": "Construction Stage", "work": "沥青拌合站建造", "workEn": "Asphalt Mixing Plant", "sd": "2027-03-01", "ed": "2027-09-30", "dur": "213", "rem": "", "remEn": "", "gspan": 0, "color": "#2C8C99"}, {"seq": "14", "phase": "施工階段", "phaseEn": "Construction Stage", "work": "跑道修补、注浆、排水改造等施工", "workEn": "Runway Rehabilitation and Grouting", "sd": "2027-07-01", "ed": "2027-09-30", "dur": "91", "rem": "", "remEn": "", "gspan": 0, "color": "#2C8C99"}, {"seq": "15", "phase": "施工階段", "phaseEn": "Construction Stage", "work": "沥青加铺、助航灯光施工", "workEn": "Asphalt Overlay, Aids-to-Navigation Lighting, and Other Non-stop  Construction / Asphalt Overlay and AGL", "sd": "2027-10-01", "ed": "2028-03-31", "dur": "182", "rem": "", "remEn": "", "gspan": 0, "color": "#2C8C99"}, {"seq": "16", "phase": "施工階段", "phaseEn": "Construction Stage", "work": "攔阻係統施工", "workEn": "EMAS", "sd": "2028-01-01", "ed": "2028-03-31", "dur": "90", "rem": "", "remEn": "", "gspan": 0, "color": "#2C8C99"}], "months": [{"y": 2026, "m": 1, "off": 0, "days": 31}, {"y": 2026, "m": 2, "off": 31, "days": 28}, {"y": 2026, "m": 3, "off": 59, "days": 31}, {"y": 2026, "m": 4, "off": 90, "days": 30}, {"y": 2026, "m": 5, "off": 120, "days": 31}, {"y": 2026, "m": 6, "off": 151, "days": 30}, {"y": 2026, "m": 7, "off": 181, "days": 31}, {"y": 2026, "m": 8, "off": 212, "days": 31}, {"y": 2026, "m": 9, "off": 243, "days": 30}, {"y": 2026, "m": 10, "off": 273, "days": 31}, {"y": 2026, "m": 11, "off": 304, "days": 30}, {"y": 2026, "m": 12, "off": 334, "days": 31}, {"y": 2027, "m": 1, "off": 365, "days": 31}, {"y": 2027, "m": 2, "off": 396, "days": 28}, {"y": 2027, "m": 3, "off": 424, "days": 31}, {"y": 2027, "m": 4, "off": 455, "days": 30}, {"y": 2027, "m": 5, "off": 485, "days": 31}, {"y": 2027, "m": 6, "off": 516, "days": 30}, {"y": 2027, "m": 7, "off": 546, "days": 31}, {"y": 2027, "m": 8, "off": 577, "days": 31}, {"y": 2027, "m": 9, "off": 608, "days": 30}, {"y": 2027, "m": 10, "off": 638, "days": 31}, {"y": 2027, "m": 11, "off": 669, "days": 30}, {"y": 2027, "m": 12, "off": 699, "days": 31}, {"y": 2028, "m": 1, "off": 730, "days": 31}, {"y": 2028, "m": 2, "off": 761, "days": 29}, {"y": 2028, "m": 3, "off": 790, "days": 31}], "total": 821, "start": "2026-01-01", "end": "2028-03-31", "today": "2026-08-29", "phases": [{"zh": "人員證件辦理及保險", "color": "#2E6FB5"}, {"zh": "勘察、測量", "color": "#1F4E79"}, {"zh": "初步設計", "color": "#3FA7A0"}, {"zh": "不停航施工方案編制", "color": "#E0A100"}, {"zh": "造價編製", "color": "#4F9D5B"}, {"zh": "進度計劃編制", "color": "#8E5BA6"}, {"zh": "環評", "color": "#D9772B"}, {"zh": "工程招標", "color": "#C0392B"}, {"zh": "施工階段", "color": "#2C8C99"}, {"zh": "前期工作階段", "color": "#6B7C8C"}], "src": "20260817 Master Schedule.xlsx", "src_date": "2026-08-17"};
+const LEFT_W = 132 + 46 + 336 + 162;         /* must match --ms-w-* vars */
+const MON_EN = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DENS = {s:[34,18],m:[44,24],l:[56,32]};
+let ppd = 3.4, key = 'detail', showRem = false;
+
+const $ = id => document.getElementById(id);
+function tasks(){ return D[key]; }
+function tlw(){ return Math.round(D.total * ppd); }
+function dayOf(s){ return (new Date(s) - new Date(D.start)) / 86400000; }
+function xOf(s){ return dayOf(s) * ppd; }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+  .replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function tattr(s){ return esc(s).replace(/\n/g,'&#10;'); }
+
+/* ---------- axis (year + month header) ---------- */
+function renderAxis(){
+  const W = tlw();
+  let yr='', mo='', cur=null, acc=0;
+  D.months.forEach(m=>{
+    const w = m.days * ppd;
+    if(m.y !== cur){
+      if(cur!==null) yr += `<div class="ms-yc" style="width:${acc}px">${cur}年</div>`;
+      cur = m.y; acc = 0;
+    }
+    acc += w;
+    let lab='';
+    if(w>=72) lab = `${m.m}月 ${MON_EN[m.m]}`;
+    else if(w>=34) lab = `${m.m}月`;
+    else if(w>=15) lab = `${m.m}`;
+    mo += `<div class="ms-mc" style="width:${w}px">${lab}</div>`;
+  });
+  if(cur!==null) yr += `<div class="ms-yc" style="width:${acc}px">${cur}年</div>`;
+  $('ms-yrow').innerHTML = yr;
+  $('ms-mrow').innerHTML = mo;
+  $('ms-ax').style.width = W + 'px';
+  $('ms-todaytick').style.left = xOf(D.today) + 'px';
+}
+
+/* ---------- rows ---------- */
+function renderBody(){
+  const rows = tasks();
+  let h='';
+  rows.forEach((t,i)=>{
+    h += `<tr id="ms-r-${key}-${i}">`;
+    if(t.gspan>0){
+      h += `<td class="ms-c-ph" rowspan="${t.gspan}" style="background:${t.color}">`
+        +  `<div class="ms-pz">${esc(t.phase)}</div>`
+        +  (t.phaseEn ? `<div class="ms-pe">${esc(t.phaseEn)}</div>` : '')
+        +  `</td>`;
+    }
+    h += `<td class="ms-c-seq">${esc(t.seq)}</td>`;
+    h += `<td class="ms-c-wk"><div class="ms-wz" title="${tattr(t.work)}">${esc(t.work)}</div>`
+      +  (t.workEn ? `<div class="ms-we" title="${tattr(t.workEn)}">${esc(t.workEn)}</div>` : '')
+      +  (showRem && (t.rem||t.remEn)
+            ? `<div class="ms-wr">${esc(t.rem)}${t.remEn ? ' / '+esc(t.remEn) : ''}</div>` : '')
+      +  `</td>`;
+    h += `<td class="ms-c-dt"><div class="ms-dd">${esc(t.sd)}</div>`
+      +  `<div class="ms-de">&rarr; ${esc(t.ed)}${t.dur ? ' · '+esc(t.dur)+'d' : ''}</div></td>`;
+    let bar='';
+    if(t.sd && t.ed){
+      const l = xOf(t.sd);
+      const w = Math.max(xOf(t.ed) - l + ppd, 4);
+      const tip = `${t.work}${t.workEn ? ' / '+t.workEn : ''}\n`
+        + `階段 Phase: ${t.phase}${t.phaseEn ? ' / '+t.phaseEn : ''}\n`
+        + `${t.sd} → ${t.ed}${t.dur ? '  ('+t.dur+' 曆日 / calendar days)' : ''}`
+        + (t.rem ? `\n備註: ${t.rem}` : '') + (t.remEn ? `\nRemarks: ${t.remEn}` : '');
+      bar = `<div class="ms-bar" style="left:${l}px;width:${w}px;background:${t.color}"`
+        + ` title="${tattr(tip)}">`
+        + ((w>=38 && t.dur) ? `<span class="ms-bl">${esc(t.dur)}d</span>` : '')
+        + `</div>`;
+    }
+    h += `<td class="ms-c-tl">${bar}</td></tr>`;
+  });
+  $('ms-tb').innerHTML = h;
+}
+
+/* ---------- overlay: month bands, grid lines, today ---------- */
+function layout(){
+  const W = tlw();
+  $('ms-cTl').style.width = W + 'px';
+  $('ms-gt').style.width = (LEFT_W + W) + 'px';
+  const th = document.querySelector('#ms-gt thead');
+  const tb = $('ms-tb');
+  const ov = $('ms-overlay');
+  ov.style.left = LEFT_W + 'px';
+  ov.style.top = th.offsetHeight + 'px';
+  ov.style.width = W + 'px';
+  ov.style.height = tb.offsetHeight + 'px';
+  let s='';
+  D.months.forEach((m,i)=>{
+    const x = m.off * ppd, w = m.days * ppd;
+    if(i % 2 === 1) s += `<div class="ms-mb" style="left:${x}px;width:${w}px"></div>`;
+    s += `<div class="${m.m===1 ? 'ms-yl' : 'ms-ml'}" style="left:${x}px"></div>`;
+  });
+  s += `<div class="ms-tdl" style="left:${xOf(D.today)}px"><span>今日 TODAY ${D.today}</span></div>`;
+  ov.innerHTML = s;
+  $('ms-zlbl').textContent = Math.round(ppd*30.44) + ' px/月';
+}
+
+/* ---------- legend (current view's phase groups, clickable) ---------- */
+function renderLegend(){
+  let h='';
+  tasks().forEach((t,i)=>{
+    if(t.gspan>0){
+      h += `<span class="ms-lg" onclick="MS.locate(${i})" title="${tattr(t.phase+(t.phaseEn?' / '+t.phaseEn:''))}">`
+        +  `<span class="ms-sw" style="background:${t.color}"></span>`
+        +  `<span class="ms-pn">${esc(t.phase)}</span>`
+        +  (t.phaseEn ? `<span class="ms-pen">${esc(t.phaseEn)}</span>` : '')
+        +  `<span class="ms-n">${t.gspan}</span></span>`;
+    }
+  });
+  $('ms-legend').innerHTML = h;
+}
+
+function draw(){ renderAxis(); renderBody(); renderLegend(); layout(); }
+
+/* ---------- controls ---------- */
+function switchView(v){
+  key = v;
+  $('ms-t-detail').classList.toggle('on', v==='detail');
+  $('ms-t-main').classList.toggle('on', v==='main');
+  draw();
+}
+function zoom(f){
+  const box = $('ms-gbox');
+  const vis = Math.max(0, box.clientWidth - LEFT_W);
+  const day = (box.scrollLeft + vis/2) / ppd;                 /* keep centre */
+  ppd = Math.min(24, Math.max(0.35, ppd * f));
+  draw();
+  box.scrollLeft = Math.max(0, day * ppd - vis/2);
+}
+function setPpd(v){ ppd = Math.min(24, Math.max(0.35, v)); draw(); }
+function preset(p){
+  if(p==='week')    setPpd(9.5);
+  if(p==='month')   setPpd(4.6);
+  if(p==='quarter') setPpd(2.2);
+  goToday();
+}
+function fit(){
+  const box = $('ms-gbox');
+  setPpd(Math.max(0.35, (box.clientWidth - LEFT_W - 6) / D.total));
+  box.scrollLeft = 0;
+}
+function goToday(){
+  const box = $('ms-gbox');
+  box.scrollLeft = Math.max(0, LEFT_W + xOf(D.today) - box.clientWidth/2);
+}
+function goEdge(e){
+  const box = $('ms-gbox');
+  box.scrollLeft = e ? box.scrollWidth : 0;
+}
+function dens(k){
+  ['s','m','l'].forEach(x=>$('ms-d-'+x).classList.toggle('on', x===k));
+  document.documentElement.style.setProperty('--ms-rh', DENS[k][0]+'px');
+  document.documentElement.style.setProperty('--ms-bh', DENS[k][1]+'px');
+  layout();
+}
+function toggleRem(){
+  showRem = !showRem;
+  $('ms-b-rem').classList.toggle('on', showRem);
+  $('ms-gt').classList.toggle('ms-rem', showRem);
+  renderBody(); layout();
+}
+function fullscreen(){
+  const w = $('ms-shell');
+  if(document.fullscreenElement) document.exitFullscreen();
+  else if(w.requestFullscreen) w.requestFullscreen();
+}
+function locate(i){
+  const row = $(`ms-r-${key}-${i}`);
+  if(!row) return;
+  const box = $('ms-gbox');
+  box.scrollTop = Math.max(0, row.offsetTop - box.clientHeight/2);
+  const t = tasks()[i];
+  if(t && t.sd) box.scrollLeft = Math.max(0, LEFT_W + xOf(t.sd) - box.clientWidth/2);
+  const span = (t && t.gspan) ? t.gspan : 1;
+  for(let k2=i;k2<i+span;k2++){
+    const r = $(`ms-r-${key}-${k2}`);
+    if(r){ r.classList.add('ms-flash'); setTimeout(()=>r.classList.remove('ms-flash'), 1400); }
+  }
+}
+/* Re-measure after the panel becomes visible (hidden panels measure 0). */
+function refresh(){ draw(); goToday(); }
+
+/* ctrl / cmd + wheel = zoom */
+$('ms-gbox').addEventListener('wheel', e=>{
+  if(e.ctrlKey || e.metaKey){ e.preventDefault(); zoom(e.deltaY < 0 ? 1.12 : 1/1.12); }
+}, {passive:false});
+window.addEventListener('resize', layout);
+
+window.MS = {switchView, zoom, setPpd, preset, fit, goToday, goEdge, dens, toggleRem,
+             fullscreen, locate, refresh, draw, layout,
+             get ppd(){ return ppd; }, get view(){ return key; }, data:D};
+
+draw();
+goToday();
+$('ms-foot').innerHTML =
+  `<span>數據來源 / Source: <b>${esc(D.src)}</b></span>`
+  + (D.src_date ? `<span>更新日期 / Updated: <b>${esc(D.src_date)}</b></span>` : '')
+  + `<span>時間軸 / Timeline: ${D.start} → ${D.end}（${D.total} 曆日 / days）</span>`
+  + `<span>今日 / Today: ${D.today}</span>`
+  + `<span>提示：Ctrl/⌘ + 滾輪可縮放 · 滑過色條看詳情</span>`;
+})();
+</script>
+<script>
+/* Hidden panels measure 0px, so the Gantt must re-layout the moment its tab is
+   selected -- otherwise the overlay/today-line land at the wrong offsets. */
+(function(){
+  var r = document.getElementById("tab-schedule");
+  if(!r) return;
+  var kick = function(){ if(r.checked && window.MS) window.MS.refresh(); };
+  r.addEventListener("change", kick);
+  if(r.checked) kick();
+})();
 </script>
 </body>
 </html>
